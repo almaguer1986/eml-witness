@@ -98,12 +98,17 @@ class UniversalityWitness:
     """Complete witness object — see module docstring.
 
     Use :func:`witness_to_dict` to serialise to a JSON-safe dict.
+
+    ``canonical_path`` is a tuple (not a list) so the dataclass is
+    *deeply* immutable — `frozen=True` only protects against
+    reassignment of the field itself; a list field would still be
+    mutable in place via `.append()` etc.
     """
 
     input_expr_str: str
     profile: WitnessProfile
     identified: WitnessIdentified | None
-    canonical_path: list[WitnessTreeNode] = field(default_factory=list)
+    canonical_path: tuple[WitnessTreeNode, ...] = field(default_factory=tuple)
     savings: int = 0
     verified_in_lean: bool = False
     lean_url: str | None = None
@@ -195,14 +200,21 @@ def universality_witness(
             try:
                 from eml_rewrite import best as _best
                 better = _best(parsed)
+                # `Basic.__eq__` returns a plain bool for structural
+                # equality (no `Ne(...)` symbolic object is ever
+                # constructed by `!=` on two Basic instances). We
+                # want a path walk whenever `best` returned a
+                # structurally different expression — even if the
+                # two are mathematically equivalent (which they
+                # are by definition for any rewrite).
                 if better != parsed:
                     target = better
-            except Exception:
+            except (ImportError, AttributeError, RecursionError):
                 target = None
         if target is not None and target != parsed:
             try:
                 steps = walk_path(parsed, target)
-            except Exception:
+            except (ValueError, RecursionError, AttributeError):
                 steps = None
             if steps is not None:
                 for s in steps:
@@ -218,7 +230,7 @@ def universality_witness(
         input_expr_str=str(parsed),
         profile=profile,
         identified=identified,
-        canonical_path=path_steps,
+        canonical_path=tuple(path_steps),
         savings=savings,
         verified_in_lean=False,
         lean_url=None,

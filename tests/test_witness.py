@@ -112,7 +112,7 @@ def test_walk_canonical_false_skips_path_walk():
         sp.exp(x) / (1 + sp.exp(x)),
         walk_canonical=False,
     )
-    assert w.canonical_path == []
+    assert w.canonical_path == ()
     assert w.savings == 0
 
 
@@ -137,6 +137,15 @@ def test_wrong_type_raises_type_error():
 
 
 def test_witness_is_immutable():
+    """frozen=True dataclass + tuple canonical_path → deeply immutable.
+
+    Specifically catches ``dataclasses.FrozenInstanceError`` rather
+    than the broader ``Exception`` so the test confirms the *frozen*
+    invariant is in effect (not merely that some attribute access
+    happens to fail)."""
+    import dataclasses as _dc
     w = universality_witness("sin(x)")
-    with pytest.raises(Exception):
+    with pytest.raises(_dc.FrozenInstanceError):
         w.savings = 999          # type: ignore[misc]
+    # Tuple canonical_path is also immutable in place.
+    assert isinstance(w.canonical_path, tuple)
