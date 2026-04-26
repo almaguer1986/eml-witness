@@ -1,4 +1,33 @@
-# eml-witness
+# eml-witness — ARCHIVED
+
+> **🗄  This package is archived as of 2026-04-25 (E-129 consolidation).**
+>
+> The functionality has been folded into the main `monogate` package
+> as of `monogate 2.4.0+`. New users should install:
+>
+> ```bash
+> pip install monogate[witness]
+> ```
+>
+> and use:
+>
+> ```python
+> from monogate.witness import universality_witness
+> # or, equivalently (via lazy alias on the package root):
+> from monogate import universality_witness
+> ```
+>
+> The standalone `eml-witness` PyPI / GitHub package is **frozen at
+> 0.2.0** and will receive no further updates. Existing installs
+> continue to work, but please migrate to `monogate[witness]` for
+> ongoing improvements.
+>
+> See [monogate's CHANGELOG entry for 2.4.0](https://github.com/almaguer1986/monogate/blob/master/python/CHANGELOG.md#240--2026-04-25--universality-witness--cli--jupyter-folded-in)
+> for details.
+
+---
+
+# eml-witness (historical)
 
 Universality witnesses for elementary functions over the EML
 routing tree. A *witness* is a finite, structured certificate
