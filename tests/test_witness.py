@@ -32,9 +32,12 @@ def test_witness_for_canonical_sigmoid():
     assert w.identified is not None
     assert isinstance(w.identified, WitnessIdentified)
     assert "sigmoid" in w.identified.name.lower()
-    # Verified-in-Lean defaults to False.
-    assert w.verified_in_lean is False
-    assert w.lean_url is None
+    # Sigmoid is in the EML class (not Pfaffian-not-EML), and the
+    # universality theorem is user-verified, so verified_in_lean
+    # is True with a link to the Lean source.
+    assert w.verified_in_lean is True
+    assert w.lean_url is not None
+    assert "Universality.lean" in w.lean_url
 
 
 def test_witness_for_textbook_sigmoid_walks_to_canonical():
@@ -77,6 +80,11 @@ def test_witness_for_unknown_expression_has_no_identification():
 def test_witness_pfaffian_not_eml_for_bessel():
     w = universality_witness(sp.besselj(0, x))
     assert w.profile.is_pfaffian_not_eml is True
+    # Bessel is OUTSIDE the EML class — the Lean theorem doesn't
+    # cover it, so verified_in_lean must stay False even though
+    # the theorem itself is verified.
+    assert w.verified_in_lean is False
+    assert w.lean_url is None
 
 
 def test_witness_to_dict_roundtrips_through_json():
@@ -88,7 +96,9 @@ def test_witness_to_dict_roundtrips_through_json():
     assert "profile" in roundtripped
     assert "fingerprint" in roundtripped["profile"]
     assert "verified_in_lean" in roundtripped
-    assert roundtripped["verified_in_lean"] is False
+    # exp(sin(x)) is in the EML class — verified_in_lean True now.
+    assert roundtripped["verified_in_lean"] is True
+    assert roundtripped["lean_url"] is not None
 
 
 def test_witness_dict_shape_matches_documented_keys():

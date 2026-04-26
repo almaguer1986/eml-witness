@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.2.0] — 2026-04-25 — `verified_in_lean=True` (Universality.lean user-verified)
+
+### Changed
+
+- **`UniversalityWitness.verified_in_lean` now defaults to `True`**
+  for any expression in the EML class (i.e., when
+  `is_pfaffian_not_eml=False`). The Lean theorem `eml_universality`
+  in `monogate-lean/MonogateEML/Universality.lean` was user-verified
+  in the VS Code lean4 extension on 2026-04-25 evening per the
+  project's Lean writing protocol. The flag flips automatically
+  inside `universality_witness()`; no caller change required.
+- **`lean_url`** is set to the canonical GitHub URL for the
+  theorem (`github.com/almaguer1986/monogate-lean/blob/master/MonogateEML/Universality.lean`)
+  whenever `verified_in_lean=True`.
+- **Bessel / Airy / Lambert W and other Pfaffian-not-EML
+  primitives** correctly stay `verified_in_lean=False` and
+  `lean_url=None` — they're outside the class the theorem covers,
+  and conflating them would be a credibility breach.
+- New module-level constant `LEAN_UNIVERSALITY_URL` exported from
+  the package root for downstream tools that want to reference the
+  source URL without hardcoding it.
+
+### Tests
+
+- 12 cases — `test_witness_for_canonical_sigmoid` updated to
+  assert `verified_in_lean=True` + non-None URL;
+  `test_witness_pfaffian_not_eml_for_bessel` extended to assert
+  the Bessel case stays False; JSON round-trip likewise updated.
+
+### Why a 0.2.0 minor bump
+
+The default value of a public-API field changed (False → True for
+EML-class inputs). Downstream consumers reading the flag — server
+endpoint tests, jupyter pill rendering, vscode hover tooltip —
+will see the new value automatically. Bumping to a new minor so
+the version skew is visible in `/health` reporting across the
+stack.
+
 ## [0.1.1] — 2026-04-25 — Audit fixes (deep freeze + targeted exception handling)
 
 ### Changed

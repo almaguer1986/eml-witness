@@ -36,7 +36,24 @@ __all__ = [
     "WitnessTreeNode",
     "universality_witness",
     "witness_to_dict",
+    "LEAN_UNIVERSALITY_URL",
 ]
+
+
+# Stable canonical URL for the Lean theorem the `verified_in_lean`
+# flag attests to. When `verified_in_lean=True`, this URL is
+# attached to the witness so downstream tools (eml-jupyter pill,
+# eml-vscode hover, eml-discover-server response, eml-explore CLI)
+# can link to the formal source.
+#
+# The theorem was added to monogate-lean on 2026-04-25 and verified
+# by the user in the VS Code lean4 extension that same day. Per
+# `feedback_lean_writing_protocol_2026_04_25` the public-facing
+# `verified_in_lean=True` is gated on user confirmation; we have it.
+LEAN_UNIVERSALITY_URL = (
+    "https://github.com/almaguer1986/monogate-lean/blob/master/"
+    "MonogateEML/Universality.lean"
+)
 
 
 @dataclass(frozen=True)
@@ -226,14 +243,24 @@ def universality_witness(
                 if len(steps) >= 2:
                     savings = steps[0].cost - steps[-1].cost
 
+    # The Lean theorem `eml_universality` (in
+    # monogate-lean/MonogateEML/Universality.lean, user-verified
+    # 2026-04-25) attests that every EML-elementary function admits
+    # an EMLTree witness. SymPy expressions outside the strict EML
+    # class (Bessel, Airy, Lambert W, hypergeometric — flagged via
+    # `is_pfaffian_not_eml`) are NOT covered by that theorem; for
+    # them the witness still carries the empirical profile but
+    # `verified_in_lean` stays False.
+    is_within_eml_class = not profile.is_pfaffian_not_eml
+
     return UniversalityWitness(
         input_expr_str=str(parsed),
         profile=profile,
         identified=identified,
         canonical_path=tuple(path_steps),
         savings=savings,
-        verified_in_lean=False,
-        lean_url=None,
+        verified_in_lean=is_within_eml_class,
+        lean_url=LEAN_UNIVERSALITY_URL if is_within_eml_class else None,
     )
 
 
