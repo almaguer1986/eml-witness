@@ -45,15 +45,56 @@ __all__ = [
 # attached to the witness so downstream tools (eml-jupyter pill,
 # eml-vscode hover, eml-discover-server response, eml-explore CLI)
 # can link to the formal source.
-#
-# The theorem was added to monogate-lean on 2026-04-25 and verified
-# by the user in the VS Code lean4 extension that same day. Per
-# `feedback_lean_writing_protocol_2026_04_25` the public-facing
-# `verified_in_lean=True` is gated on user confirmation; we have it.
 LEAN_UNIVERSALITY_URL = (
     "https://github.com/almaguer1986/monogate-lean/blob/master/"
     "MonogateEML/Universality.lean"
 )
+
+
+# The closed set of SymPy Function classes that are EML-elementary.
+# Anything outside this set (erf, gamma, polylog, zeta, elliptic_k,
+# besselj, airyai, LambertW, hyper, …) is NOT covered by the
+# universality theorem and must NOT carry verified_in_lean=True.
+#
+# Membership rule: include only standard exp / log / trig /
+# hyperbolic / inverse-trig / inverse-hyperbolic primitives. The
+# substrate's `is_pfaffian_not_eml` flag catches the dozen
+# known-special primitives in PFAFFIAN_NOT_EML_R, but it silently
+# returns False for less-common non-elementary functions (erf, Γ,
+# polylog, ζ, elliptic, exp-integrals, ...) — see
+# `monogate-research/exploration/deep-research-2026-04-25-overnight/
+# sr134_findings.md` for the coverage-gap analysis. This strict
+# allow-list closes the gap on the verified_in_lean field.
+_EML_ELEMENTARY_FUNCS: frozenset[type[sp.Function]] = frozenset({
+    sp.exp, sp.log,
+    sp.sin, sp.cos, sp.tan,
+    sp.sinh, sp.cosh, sp.tanh,
+    sp.asin, sp.acos, sp.atan,
+    sp.asinh, sp.acosh, sp.atanh,
+})
+
+
+def _is_in_eml_class_strict(expr: sp.Basic) -> bool:
+    """Recursively verify every Function call in ``expr`` is one of
+    the EML-elementary primitives (exp / log / trig / hyperbolic /
+    inverses).
+
+    Returns False on the first non-elementary Function encountered;
+    True otherwise. Atoms (Symbol, Number, NumberSymbol like pi/E/I)
+    are accepted unconditionally. Add / Mul / Pow with elementary
+    args propagate via recursion.
+    """
+    if isinstance(expr, sp.Function):
+        if type(expr) not in _EML_ELEMENTARY_FUNCS:
+            return False
+        return all(_is_in_eml_class_strict(arg) for arg in expr.args)
+    if expr.is_Atom:
+        return True
+    return all(
+        _is_in_eml_class_strict(a)
+        for a in expr.args
+        if isinstance(a, sp.Basic)
+    )
 
 
 @dataclass(frozen=True)
@@ -246,12 +287,19 @@ def universality_witness(
     # The Lean theorem `eml_universality` (in
     # monogate-lean/MonogateEML/Universality.lean, user-verified
     # 2026-04-25) attests that every EML-elementary function admits
-    # an EMLTree witness. SymPy expressions outside the strict EML
-    # class (Bessel, Airy, Lambert W, hypergeometric — flagged via
-    # `is_pfaffian_not_eml`) are NOT covered by that theorem; for
-    # them the witness still carries the empirical profile but
-    # `verified_in_lean` stays False.
-    is_within_eml_class = not profile.is_pfaffian_not_eml
+    # an EMLTree witness. The flag flips True only when BOTH:
+    #   (a) the cost detector's `is_pfaffian_not_eml` flag is False
+    #       (catches the dozen known PFAFFIAN_NOT_EML_R primitives —
+    #        Bessel, Airy, LambertW, hypergeometric);
+    #   (b) the strict elementary-class check passes — every Function
+    #       call in the expression is exp / log / trig / hyperbolic
+    #       / inverse-trig / inverse-hyperbolic. This catches the
+    #       silent gap (erf, gamma, polylog, zeta, elliptic, …)
+    #       the cost detector currently misses. See sr134_findings.md.
+    is_within_eml_class = (
+        (not profile.is_pfaffian_not_eml)
+        and _is_in_eml_class_strict(parsed)
+    )
 
     return UniversalityWitness(
         input_expr_str=str(parsed),

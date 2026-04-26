@@ -87,6 +87,51 @@ def test_witness_pfaffian_not_eml_for_bessel():
     assert w.lean_url is None
 
 
+# ---- 0.2.1 hotfix regression tests ---------------------------------
+# These functions are non-elementary but the cost detector silently
+# treats them as depth-0 atoms (is_pfaffian_not_eml=False). Pre-0.2.1,
+# verified_in_lean wrongly returned True for them. The strict
+# allow-list check fixes that.
+
+def test_witness_erf_is_not_verified():
+    """erf is non-elementary; universality theorem doesn't cover it."""
+    w = universality_witness(sp.erf(x))
+    assert w.verified_in_lean is False
+    assert w.lean_url is None
+
+
+def test_witness_gamma_is_not_verified():
+    w = universality_witness(sp.gamma(x))
+    assert w.verified_in_lean is False
+    assert w.lean_url is None
+
+
+def test_witness_polylog_is_not_verified():
+    w = universality_witness(sp.polylog(2, x))
+    assert w.verified_in_lean is False
+    assert w.lean_url is None
+
+
+def test_witness_elliptic_is_not_verified():
+    w = universality_witness(sp.elliptic_k(x))
+    assert w.verified_in_lean is False
+    assert w.lean_url is None
+
+
+def test_witness_compound_with_erf_is_not_verified():
+    """Larger expression containing erf as a subterm must also fail
+    the strict check (recursion case)."""
+    w = universality_witness(sp.exp(x) + sp.erf(x))
+    assert w.verified_in_lean is False
+
+
+def test_witness_pi_and_e_atoms_are_in_class():
+    """pi and E are atoms (NumberSymbol), not Functions — accepted."""
+    w = universality_witness(sp.pi * x + sp.E)
+    assert w.verified_in_lean is True
+    assert w.lean_url is not None
+
+
 def test_witness_to_dict_roundtrips_through_json():
     w = universality_witness("exp(sin(x))")
     d = witness_to_dict(w)
