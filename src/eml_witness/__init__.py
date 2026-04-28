@@ -1,54 +1,42 @@
-"""eml-witness — universality witnesses for elementary functions.
+"""eml-witness — DEPRECATED.
 
-A *witness* for an expression is a finite, structured certificate
-that the expression admits an EML routing tree:
+This package has been consolidated into ``eml-cost`` as the
+:mod:`eml_cost.witness` subpackage. The standalone distribution
+will receive no further updates.
 
-    >>> from eml_witness import universality_witness
-    >>> w = universality_witness("1/(1+exp(-x))")
-    >>> w.profile.predicted_depth
-    2
-    >>> w.identified.name
-    'sigmoid (canonical)'
-    >>> w.verified_in_lean
-    False                       # flips to True once EML_Universality.lean
-                                # lands AND the user verifies in VS Code
+Migration:
 
-The witness composes the existing substrate:
+    pip uninstall eml-witness
+    pip install "eml-cost[witness]>=0.15.0"
 
-  - :func:`eml_cost.analyze` + :func:`eml_cost.fingerprint` — the
-    Pfaffian profile (chain order, depth, corrections, fingerprint).
-  - :func:`eml_discover.identify` — the closest registry match.
-  - (optional) :func:`eml_rewrite.path` — the rewrite sequence
-    walking the input to a canonical equivalent, if one exists.
+    # then change your imports:
+    # OLD:  from eml_witness import X
+    # NEW:  from eml_cost.witness import X
 
-The witness object is plain data (frozen dataclass + Pydantic-
-free); serialise to JSON via :func:`witness_to_dict`.
-
-For the Lean half of the story see
-``D:/monogate-lean/MonogateEML/Universality.lean`` (planned).
-``verified_in_lean`` is the link between the two halves; the
-default ``False`` flips to ``True`` once the Lean file is
-user-verified per ``feedback_lean_writing_protocol_2026_04_25``.
+This shim re-exports the public API from ``eml_cost.witness`` so
+existing code keeps working while you migrate.
 """
 from __future__ import annotations
 
-from .core import (
-    UniversalityWitness,
-    WitnessIdentified,
-    WitnessProfile,
-    WitnessTreeNode,
-    universality_witness,
-    witness_to_dict,
+import warnings as _warnings
+
+_warnings.warn(
+    "eml-witness is deprecated. Use `pip install \"eml-cost[witness]\"` "
+    "instead. The functionality is now available at eml_cost.witness. "
+    "This package will receive no further updates.",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
-__version__ = "0.2.1"
+from eml_cost import witness as _impl  # noqa: E402
 
-__all__ = [
-    "__version__",
-    "universality_witness",
-    "witness_to_dict",
-    "UniversalityWitness",
-    "WitnessProfile",
-    "WitnessIdentified",
-    "WitnessTreeNode",
-]
+# Mirror the upstream public API so `from eml_witness import X` keeps
+# working. We deliberately avoid `from eml_cost.witness import *`
+# to keep `__all__` faithful to whatever the new home declares.
+__all__ = list(getattr(_impl, "__all__", []))
+for _name in __all__:
+    globals()[_name] = getattr(_impl, _name)
+del _name, _impl
+
+# Override any upstream __version__ — this shim has its own version line.
+__version__ = "0.3.0"
